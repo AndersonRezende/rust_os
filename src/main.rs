@@ -18,6 +18,8 @@ Ao passar o --target fazemos uma compilação cruazada para um sistema de destin
 
 use core::panic::PanicInfo;
 
+static HELLO: &[u8] = b"Hello World!";
+
 // Define a função que o compilador deve invocar quando um panic acontece.
 #[panic_handler]
 // PanicInfo contém o arquivo e linha onde o panic aconteceu e uma mensagem.
@@ -38,5 +40,17 @@ fn panic(_info: &PanicInfo) -> !{
 */
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
+    let vga_buffer = 0xb8000 as *mut u8;
+
+    for( i, &byte) in HELLO.iter().enumerate() {
+        /* O bloco unsafe é necessário, pois o compilador Rust não pode provar que os ponteiros
+         * brutos que criamos são válidos. Ao colocar o unsafe dizemos ao compilador para ignorar
+         * esses possíveis erros.
+        */
+        unsafe {
+            *vga_buffer.offset(i as isize * 2) = byte;
+            *vga_buffer.offset(i as isize * 2 + 1) = 0xb;
+        }
+    }
     loop {}
 }
