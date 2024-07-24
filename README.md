@@ -185,3 +185,38 @@ Para facilitar a execução do kernel no qemu, podemos definir a chave runner de
 [target.'cfg(target_os = "none")']
 runner = "bootimage runner"
 ```
+
+## Modo de texto VGA
+É o modo mais simples de exibir texto em tela.
+### Buffer de texto VGA
+Para escrever um caractere na tela no modo VGA é necessário escrever no buffer de texto do hardware VGA.
+O buffer de texto VGA é uma matriz bidimensional com 80 colunas e 25 linhas que é renderizado diretamente na tela.
+Cada entrada na matriz descreve um único caractere através do seguinte formato:
+<table>
+<thead>
+<tr>
+<th>Bit(s)</th>
+<th>Valor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th>0-7</th>
+<td>Código ASCII do caractere</td>
+<tr>
+<td>8-11</td>
+<td>Cor do caractere</td>
+</tr>
+<tr>
+<td>12-14</td>
+<td>Cor de fundo</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Piscar</td>
+</tr>
+</tbody>
+</table>
+
+O buffer de texto é acessível através de Memory-mapped I/O (MMIO) no endereço 0xb8000. Isso significa que as leituras e 
+gravações nesse endereço não acessam a memória RAM, mas sim o buffer no hardware do VGA.
