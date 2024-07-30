@@ -220,3 +220,65 @@ Cada entrada na matriz descreve um único caractere através do seguinte formato
 
 O buffer de texto é acessível através de Memory-mapped I/O (MMIO) no endereço 0xb8000. Isso significa que as leituras e 
 gravações nesse endereço não acessam a memória RAM, mas sim o buffer no hardware do VGA.
+
+
+## Testando
+### Testando em Rust
+O Rust possui uma framework interna capaz de realizar testes unitários sem a necessidade de configurar nada. É apenas 
+necessário criar uma função que verifique se assertations são válidas. Essas funções possuem o atributo #[test] na 
+declaração da função. Com isso, o comando ```$ cargo test``` irá automaticamente realizar os testes nessas funções.
+
+Porém, como estamos utilizando um ambiente <strong>no_std</strong>, é necessário realizar alguns processos a mais para
+configurar uma framework de testes. Isso se dá por conta que a framework de testes do Rust utiliza dependências da 
+biblioteca padrão (std).
+
+### Framework de teste customizada
+O Rust suporta a substituição da framework padrão através de ```custom_test_frameworks```. Essa feature não requer 
+bibliotecas externas, logo funciona em ambientes ```no_std```. Ela funciona coletando todas as funções com a anotação
+```#[test_case]``` e então as invoca por meio de uma função runner ``#![test_runner(crate::test_runner)]`` com a lista 
+de testes a serem executados como argumento.
+
+A implementação da framework de testes customizada se dá por meio das seguintes anotações: 
+<ul>
+<li>"#![feature(custom_test_frameworks)]": implementa a própria framework de testes</li>
+<li>"#![test_runner(crate::test_runner)]": invoca a própria função executora test_runner</li>
+</ul>
+A função executora recebe uma lista de argumentos que são os testes e executa cada um deles.
+
+A desvantagem em comparação com o framework de teste padrão é que recursos avançados, como ``should_panic`` não estão 
+disponíveis. Em vez disso, será necessário implementar esses recursos por conta própria.
+
+### Portas I/O
+Para testar com apoio do qemu é necessário configurar uma comunicação entre o guest e o host. Essa comunicação pode ser 
+feita por meio de memória mapeada de I/O ou portas mapeadas de I/O. Já foi utilizado o mapeamento de memória com o VGA 
+buffer através do endereço 0xb8000. Esse endereço não é mapeado para a RAM, mas sim para a memória do dispositivo VGA.
+
+Em contraste, a comunicação por portas mapeadas I/O utiliza uma "trilha" de comunicação separada. Essas trilhas se 
+conectam a diferentes periféricos que possuem uma ou mais portas acessadas por meio de seus números. A comunicação com 
+esses dispositivos é feito por meio das instruções assembly ```in``` e ```out```, onde cada um leva um número de porta e
+dados.
+
+Essa comunicação é necessária para enviar um comando para o qemu para que o mesmo seja encerrado após o término dos testes.
+
+### Imprimindo no console
+Para ver o resultado dos testes no console é necessário enviar dados entre o guest e o host. Uma maneira de realizar essa
+comunicação é por meio de portas seriais.
+Existe uma interface chamada de UART. Essa interface utiliza implementações de portas I/O. A primeira porta padrão serial 
+é a de número 0x3F8.
+
+Utilizamos o crate "uart_16550" para inicializar a UART e enviar dados através da porta serial. No arquivo "src/serial.rs"
+inicializamos a crate e definimos macros para facilitar a utilização da porta serial.
+
+### Teste de integração
+A convenção para definição de testes integrados em Rust é colocá-los em um diretório "tests" na raiz do projeto. Os testes
+desses diretórios são identificados automaticamente.
+
+Cada teste de integração deve ser autoexecutável e é separado do "main.rs". Isso significa que precisamos definir uma 
+função de ponto de entrada para cada um. Por serem executáveis separados, precisamos definir alguns atributos:
+<ul>
+<li>#![no_std]: não utiliza a biblioteca padrão.</li>
+<li>#![no_main]: não utilizamos o ponto de entrada padrão.</li>
+<li>#![feature(custom_test_frameworks)]: informamos que é uma framework de teste customizada. Funciona coletando os #[test_case]</li>
+<li>#![test_runner(crate::test_runner)]: função executora que receberá a lista de funções de testes a serem executadas.</li>
+<li>#![reexport_test_harness_main = "test_main"]: definimos o nome da função de entrada.</li>
+</ul>

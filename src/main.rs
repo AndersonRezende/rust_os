@@ -1,10 +1,9 @@
-/*
-Por padrão, o Rust tenta construir um executável que seja capaz de rodar no seu ambiente de sistema atual.
-Por exemplo, se você estiver usando o Windows no x86_64, o Rust tenta construir um .exeexecutável do
-Windows que use x86_64instruções. Esse ambiente é chamado de seu sistema “host”.
--> rustup target add thumbv7em-none-eabihf
-cargo build --target thumbv7em-none-eabihf
-Ao passar o --target fazemos uma compilação cruazada para um sistema de destino bare metal.
+/* Por padrão, o Rust tenta construir um executável que seja capaz de rodar no seu ambiente de sistema atual.
+*  Por exemplo, se você estiver usando o Windows no x86_64, o Rust tenta construir um .exe executável do
+*  Windows que use x86_64instruções. Esse ambiente é chamado de seu sistema “host”.
+*  -> rustup target add thumbv7em-none-eabihf
+*  cargo build --target thumbv7em-none-eabihf
+*  Ao passar o --target fazemos uma compilação cruzada para um sistema de destino bare metal.
 */
 
 // Desabilita a biblioteca padrão.
@@ -16,21 +15,26 @@ Ao passar o --target fazemos uma compilação cruazada para um sistema de destin
 */
 #![no_main]
 
+/* Implementa nossa própria framework de testes já que a framework padrão possui recursos atrelados
+* biblioteca padrão.
+* Funciona coletando todas as funções com a anotação #[test_case] e então invoca uma função executora
+* com a lista de testes como argumentos.
+*/
+#![feature(custom_test_frameworks)]
+#![test_runner(rust_os::test_runner)]
+/* Como _start é o ponto de entrada, a nossa framework de testes gera uma função main que chama a
+* test_runner, mas a função é ignorada, pois utilizamos o atributo #[no_main].
+* Nos definimos o nome da função de entrada da framework de testes e chamamos no ponto de entrada.
+*/
+#![reexport_test_harness_main = "test_main"]
+
+
 mod vga_buffer;
 
-use core::fmt::Write;
 use core::panic::PanicInfo;
 
 //static HELLO: &[u8] = b"Hello World!";
 
-// Define a função que o compilador deve invocar quando um panic acontece.
-#[panic_handler]
-// PanicInfo contém o arquivo e linha onde o panic aconteceu e uma mensagem.
-fn panic(_info: &PanicInfo) -> !{
-    println!("{}", _info);
-    // A função nunca deve retornar, logo ela é marcada como uma função divergente retornando o tipo never
-    loop {}
-}
 
 /* A main não faz sentido nesse contexto, logo sobrescrevemos o ponto de entrada do sistema
 * operacional através do _start.
@@ -58,8 +62,33 @@ pub extern "C" fn _start() -> ! {
     }*/
 
     //vga_buffer::print_something();
-    vga_buffer::WRITER.lock().write_str("Hello world!\n").unwrap();                              // A chamada de write! retorna um Result que causa aviso se não for usado, logo é necessário utilizar o unwrap() para entrar em panic caso ocorra um erro.
-    write!(vga_buffer::WRITER.lock(), "Numero: {}", 95).unwrap();
+    //vga_buffer::WRITER.lock().write_str("Hello world!\n").unwrap();                                 // A chamada de write! retorna um Result que causa aviso se não for usado, logo é necessário utilizar o unwrap() para entrar em panic caso ocorra um erro.
+    //write!(vga_buffer::WRITER.lock(), "Numero: {}", 95).unwrap();
+    println!("Hello World! \n{}", 95);
     println!("\nTeste");
+
+    #[cfg(test)]
+    test_main();
+
     loop {}
+}
+
+
+/// This function is called on panic.
+#[cfg(not(test))]
+#[panic_handler]                                                                                    // Define a função que o compilador deve invocar quando um panic acontece.
+fn panic(info: &PanicInfo) -> ! {
+    println!("{}", info);
+    loop {}
+}
+
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    rust_os::test_panic_handler(info)
+}
+
+#[test_case]
+fn trivial_assertion() {
+    assert_eq!(1, 1);
 }

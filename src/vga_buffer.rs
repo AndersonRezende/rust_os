@@ -1,5 +1,5 @@
 use core::fmt;
-use core::fmt::Write;
+//use core::fmt::Write;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
@@ -18,8 +18,7 @@ lazy_static! {
         buffer: unsafe {                                                                            // O bloco unsafe é necessário, pois o compilador Rust não pode provar que os ponteiros brutos que criamos são válidos. Ao colocar o unsafe dizemos ao compilador para ignorar esses possíveis erros.
             /*
              * O novo writer aponta para o buffer VGA em 0xb8000
-             * Converte um inteiro como um ponteiro mutável raw 0xb8000.
-             *
+             * "as *mut Buffer" Converte esse endereço literal para um ponteiro mutável para um tipo Buffer.
              */
             &mut *(0xb8000 as *mut Buffer)
         },
@@ -158,6 +157,39 @@ pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
     WRITER.lock().write_fmt(args).unwrap();
 }
+
+
+#[test_case]
+fn test_println_simple() {
+    println!("test_println_simple output");
+}
+
+#[test_case]
+fn test_println_many() {
+    for _ in 0..200 {
+        println!("test_println_many output");
+    }
+}
+
+#[test_case]
+fn test_println_output() {
+    /* A função define uma string e itera sobre ela e os caracteres impressos no buffer e compara.
+     * Como o println coloca uma linha nova, a string deve estar na linha anterior.
+    */
+    let s = "Some test string that fits on a single line";
+    println!("{}", s);
+    for (i, c) in s.chars().enumerate() {
+        let screen_char = WRITER.lock().buffer.chars[BUFFER_HEIGHT - 2][i].read();
+        assert_eq!(char::from(screen_char.ascii_character), c);
+    }
+}
+
+
+
+
+
+
+
 /*pub fn print_something() {
     let mut writer = Writer {
         column_position: 0,
