@@ -12,6 +12,8 @@ authors = [
 bootloader = "0.9"
 volatile = "0.2.6"      # Necessário para evitar otimizações erroneas do compilador
 spin = "0.5.2"          # Necessário para evitar problemas de concorrência (buffer vga). Bloqueia o uso do item até ele estar disponível
+x86_64 = "0.14.2"     # Crate utilizado para abstrair a escrita das escritas assembly in e out
+uart_16550 = "0.2.0"   # Essa crate inicializa o UART e envia dados através da porta serial.
 
 [dependencies.lazy_static]
 version = "1.0"
@@ -19,7 +21,16 @@ features = ["spin_no_std"]
 
 # As seguintes linhas desabilitam o eh_personality Item de Linguagem
 [profile.dev]
-panic = "abort"
+#panic = "abort"
 
 [profile.release]
-panic = "abort"
+#panic = "abort"
+
+[package.metadata.bootimage]
+test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", "-serial", "stdio", "-display", "none"]               # Suporte para prover uma maneira mais simples de sair do qemu. Para visualizar a saída do QEMU precisamos adicionar o argumento -serial para redirecionar a saída para o stdout. Adicionamos o argumento -display none para ocultar a janela do QEMU.
+test-success-exit-code = 33                                                                                             # (0x10 << 1) | 1 => Serve para o bootimage mapear nosso código de saída de sucesso já que o padrão é 0.
+test-timeout = 380                                                                                                      # Tempo limite de duração do teste em segundos
+
+[[test]]
+name = "should_panic"
+harness = false                                                                                                         # Podemos desabilitar o test_runner em casos onde há apenas um caso de teste.
