@@ -9,7 +9,24 @@
 #![feature(custom_test_frameworks)]
 #![test_runner(rust_os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
-// Não precisamos do #cfg(test) por conta que testes de integração não são construídos em modo de não teste.
+
+/*
+* #![feature(custom_test_frameworks)]: Habilita uma feature (recurso) experimental no Rust chamada
+* custom_test_frameworks. Essa feature permite que você defina e utilize um framework de testes
+* customizado, ao invés de usar o framework de testes padrão do Rust.
+
+* #![test_runner(crate::test_runner)]: Especifica uma função customizada chamada test_runner (que
+* reside no módulo crate, ou seja, no próprio crate em que o código está) para ser usada como o
+* executor de testes. O Rust normalmente usa um executor padrão para rodar testes, mas com essa
+* linha, você está indicando que deseja usar sua própria função test_runner para lidar com a
+* execução dos testes.
+
+* #![reexport_test_harness_main = "test_main"]: Substitui a função principal de teste (normalmente
+* gerada pelo framework de testes padrão do Rust) por uma função de nome customizado, neste caso,
+* test_main. Isso é útil quando você precisa de mais controle sobre como os testes são organizados e
+* executados, especialmente em projetos mais complexos ou que precisam integrar outros sistemas de teste.
+*/
+// Não precisamos do #cfg(test) por conta que testes de integração sempre são construídos em modo de teste.
 
 
 use core::panic::PanicInfo;
