@@ -7,6 +7,7 @@
 * com a lista de testes como argumentos.
 */
 #![feature(custom_test_frameworks)]
+#![feature(abi_x86_interrupt)]
 /* Especifica uma função customizada chamada test_runner (que reside no módulo crate, ou seja, no
 * próprio crate em que o código está) para ser usada como o executor de testes. O Rust normalmente
 * usa um executor padrão para rodar testes, mas com essa linha, você está indicando que deseja usar
@@ -24,8 +25,13 @@
 
 pub mod serial;
 pub mod vga_buffer;
+pub mod interrupts;
 
 use core::panic::PanicInfo;
+
+pub fn init() {
+    interrupts::init_idt();
+}
 
 pub trait Testable {
     fn run(&self) -> ();
@@ -90,6 +96,7 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 #[cfg(test)]
 #[no_mangle]
 pub extern "C" fn _start() -> ! {                                                                   // A lib é testada fora do main, logo precisa de um ponto de entrada e um manipulador de pânico.
+    init();
     test_main();
     loop {}
 }

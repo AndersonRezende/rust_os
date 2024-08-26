@@ -62,14 +62,18 @@ pub extern "C" fn _start() -> ! {
     }*/
 
     //vga_buffer::print_something();
-    //vga_buffer::WRITER.lock().write_str("Hello world!\n").unwrap();                                 // A chamada de write! retorna um Result que causa aviso se não for usado, logo é necessário utilizar o unwrap() para entrar em panic caso ocorra um erro.
+    //vga_buffer::WRITER.lock().write_str("Hello world!\n").unwrap();                               // A chamada de write! retorna um Result que causa aviso se não for usado, logo é necessário utilizar o unwrap() para entrar em panic caso ocorra um erro.
     //write!(vga_buffer::WRITER.lock(), "Numero: {}", 95).unwrap();
     println!("Hello World! \n{}", 95);
     println!("\nTeste");
 
+    rust_os::init();
+    x86_64::instructions::interrupts::int3();                                                       // Chama breakpoint exception
+
     #[cfg(test)]
     test_main();
 
+    println!("\nNao crashou!");
     loop {}
 }
 

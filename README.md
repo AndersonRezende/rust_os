@@ -282,3 +282,33 @@ função de ponto de entrada para cada um. Por serem executáveis separados, pre
 <li>#![test_runner(crate::test_runner)]: função executora que receberá a lista de funções de testes a serem executadas.</li>
 <li>#![reexport_test_harness_main = "test_main"]: definimos o nome da função de entrada.</li>
 </ul>
+
+
+## Exceções da CPU
+Exceções de CPU podem ocorrer em várias situações como acessar um endereço de memória inválido ou divisão por zero. Para 
+reagir a cada uma dessas opções temos que configurar uma tabela de descritores de interrupção que forneça funções de 
+manipulador.
+
+### Visão geral
+Uma exceção sinaliza que algo está errado na instrução atual. Quando ocorre uma exceção, a CPU interrompe o seu trabalho
+atual e chama uma função manipuladora específica para o tipo de exceção lançada.
+No x86 há cerca de 20 diferentes tipos de exceção de CPU.
+
+### Tabela de descritores de interrupção
+Para capturar e manipular exceções temos que configurar uma IDT (interrupt descriptor table). Nessa tabela podemos 
+especificar uma função de manipulador para cada exceção da CPU.
+
+Quando ocorre uma exceção, a CPU faz basicamente o seguinte:
+<ol>
+<li>Empilhar alguns registradores na pilha, incluindo o ponteiro de instrução e o registrador RFLAGS.</li>
+<li>Ler a entrada correspondente ao IDT, por exemplo, a CPU lê a entrada 14 quando ocorre um page fault.</li>
+<li>Verifica se a entrada está presente, se não estiver registra uma dupla falta.</li>
+<li>Desabilita interrupções de hardware se a entrada for uma porta de interrupção.</li>
+<li>Carrega o seletor GDT especificado no CS (code segment).</li>
+<li>Ir para a função manipuladora especificada.</li>
+</ol>
+
+### Convenção para chamadas de interrupção
+Exceções se assemelham a funções, a CPU salta para um endereço que será executado e retorna posteriormente a execução.
+No entanto, há uma grande diferença entre exceções e funções, uma chamada de função é invocada voluntariamente por uma 
+instrução ``call`` enquanto uma exceção pode ocorrer em qualquer instrução.
